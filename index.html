@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Voice-Controlled Audio Player</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="js/app.js" async></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="css/styles.css"/>
+
+</head>z+
+<body>
+<div class="row">
+    <div class="contextual col-md-5 alert alert-success text-center">
+        <p class="big">Contextual</p>
+        <p> Last Command: <span class="l-command"></span></p>
+        <p>Status: <span class="status"></span> </p>
+    </div>
+    <div class="col-md-4 col-md-offset-4">
+    <h1 class="well text-center well-sm">Voice-Controlled Audio Player</h1>
+    </div>
+</div>
+
+<div class="col-md-5">
+    <p class="big text-center"><span class="glyphicon glyphicon-info-sign"></span> Available Commands:</h1>
+    <ul class="list-group">
+        <li class="list-group-item list-group-item-success"><strong>Play</strong> - Plays the current song or starts the first song.</li>
+        <li class="list-group-item list-group-item-success"><strong>Stop</strong> - Stops the the current song and nullifies the playback time.</li>
+    <li class="list-group-item list-group-item-success"><strong>Pause</strong> - Pauses the current song.</li>
+        <li class="list-group-item list-group-item-success"><strong>Next</strong> Plays the next song in the list.</li>
+        <li class="list-group-item list-group-item-success"><strong>Previous</strong> - Plays the previous song in the list. </li>
+        <li class="list-group-item list-group-item-success"><strong>Play &lt;slice from song's or singer's name&gt;</strong> - Plays a song with a particular name, if found.</li>
+        <li class="list-group-item list-group-item-warning" >The songs are taken from <a href="http://freemusicarchive.org/" target="_blank">http://freemusicarchive.org/</a> and the spinner icon from
+            <a target="_blank" href="http://www.wikimedia.org">Wikimedia</a></li>
+    </ul>
+
+
+
+
+</div>
+
+    <div class="col-md-6">
+        <p class="lead text-center">We offer you the following amazing songs:</p>
+    <ul class="list-group" id="playlist">
+
+
+    </ul>
+    </div>
+
+
+<div id="spinner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif" alt="Loading">
+</div>
+
+</body>
+</html>
