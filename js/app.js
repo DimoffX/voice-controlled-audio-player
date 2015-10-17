@@ -112,8 +112,8 @@
 
         speak: function (text, scope) {
             var message = new SpeechSynthesisUtterance(text.replace("-", " "));
-            window.speechSynthesis.speak(message);
             message.rate = 1;
+            window.speechSynthesis.speak(message);
             if (scope) {
                 message.onend = function () {
                     scope.play();
@@ -182,39 +182,42 @@
                 this.changeStatusCode("You have reached the final song.");
             }
         },
+        searchSpecificSong: function(keyword) {
+            for (var i = 0; i < this.data.length; i++) {
+                if (this.data[i].songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
+                    this.data[i].singer.trim().toLowerCase().indexOf(keyword) !== -1) {
+                    if (typeof this.audioData.songs[i] !== 'undefined') {
+                        //if the song is already cached
+                        if (this.audioData.currentSong > -1) {
+                            this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+                        }
+                        this.audioData.currentSong = i;
+
+                        this.playSong(this.audioData.songs[i]);
+                        break;
+                    } else {
+
+                        //add the song and play it
+                        if (this.audioData.currentSong > -1) {
+                            this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+                        }
+                        this.audioData.currentSong = i;
+                        this.audioData.songs[i] = new Audio(
+                            this.data[i].fileName);
+                        this.playSong(this.audioData.songs[i]);
+                        break;
+                    }
+
+                }
+            }
+        },
 
         processCommands: function (cmd) {
             this.changeLastCommand(cmd);
             var playSpecific = cmd.match(/play\s*(.+)$/);
             if (playSpecific) {
-                var keyword = playSpecific[1];
-                for (var i = 0; i < this.data.length; i++) {
-                    if (this.data[i].songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
-                        this.data[i].singer.trim().toLowerCase().indexOf(keyword) !== -1) {
-                        if (typeof this.audioData.songs[i] !== 'undefined') {
-                            //if the song is already cached
-                            if (this.audioData.currentSong > -1) {
-                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
-                            }
-                            this.audioData.currentSong = i;
+                this.searchSpecificSong(playSpecific[1]);
 
-                            this.playSong(this.audioData.songs[i]);
-                            break;
-                        } else {
-
-                            //add the song and play it
-                            if (this.audioData.currentSong > -1) {
-                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
-                            }
-                            this.audioData.currentSong = i;
-                            this.audioData.songs[i] = new Audio(
-                                this.data[i].fileName);
-                            this.playSong(this.audioData.songs[i]);
-                            break;
-                        }
-
-                    }
-                }
                 return;
             }
                 switch (cmd) {
@@ -225,7 +228,7 @@
                         this.stop();
                         break;
                     case "stop" :
-                        this.stop();
+                        this.stop(true);
                         break;
                     case "next" :
                         this.next();
