@@ -80,7 +80,7 @@
         playSong: function (audio) {
         this.changeCurrentSongEffect({play:1});
         audio.onended = function () {
-            this.changeCurrentSongEffect({end: 1});
+            audioPlayer.changeCurrentSongEffect({end: 1});
             audioPlayer.changeStatusCode("Finished listening to", true);
         }
         this.changeStatusCode("Playing", true, audio);
