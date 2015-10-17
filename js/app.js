@@ -1,4 +1,4 @@
-$(function() {
+
     var data = {
         "songs": [
             {
@@ -55,54 +55,55 @@ $(function() {
         },
         load: function () {
             //get all data about the songs
-            var scope = this;
-            scope.data = data.songs;
+            this.data = data.songs;
             $(data.songs).each(function (i, val) {
 
                 $("#playlist").append("<li class='list-group-item'>" + val.singer + " - " + val.songName);
 
             })
+        },
 
-            Audio.prototype.playSong = function () {
+        changeCurrentSongEffect: function(options) {
+            if (options.play) {
                 $("#playlist .list-group-item").removeClass("list-group-item-success").find("span").remove();
-                $("#playlist .list-group-item").eq(scope.audioData.currentSong)
+                $("#playlist .list-group-item").eq(this.audioData.currentSong)
                     .addClass("list-group-item-success")
                     .removeClass("list-group-item-danger")
                     .append(" <span class='glyphicon glyphicon-headphones'>");
-                this.onended = function () {
-                    $("#playlist .list-group-item").eq(scope.audioData.currentSong)
-                        .removeClass("list-group-item-success glyphicon-headphones").addClass("list-group-item-danger");
-                    scope.changeStatusCode("Finished listening to", true);
-                }
-
-                scope.changeStatusCode("Playing", true, this);
             }
-
-            Audio.prototype.pauseSong = function (stopPlayback) {
-                if (this.paused) {
-                    return;
-                }
-                this.pause();
-                if (stopPlayback) {
-                    scope.changeStatusCode("Stopped", true);
-                    this.currentTime = 0;
-                    return;
-                }
-                scope.changeStatusCode("Paused", true);
-
+            if (options.end) {
+                $("#playlist .list-group-item").eq(this.audioData.currentSong)
+                    .removeClass("list-group-item-success glyphicon-headphones").addClass("list-group-item-danger");
             }
-
 
         },
+        playSong: function (audio) {
+        this.changeCurrentSongEffect({play:1});
+        audio.onended = function () {
+            this.changeCurrentSongEffect({end: 1});
+            audioPlayer.changeStatusCode("Finished listening to", true);
+        }
+        this.changeStatusCode("Playing", true, audio);
+        },
+        pauseSong:  function (audio,stopPlayback) {
+            if (audio.paused) {
+                return;
+            }
+            audio.pause();
+            if (stopPlayback) {
+                this.changeStatusCode("Stopped", true);
+                audio.currentTime = 0;
+                return;
+            }
+            this.changeStatusCode("Paused", true);
 
+        },
         changeStatusCode: function (statusMessage,addSongName, scope) {
             if (addSongName) {
                 statusMessage +=  " " +  $("#playlist .list-group-item").eq(this.audioData.currentSong).text();
 
             }
             this.speak(statusMessage, scope);
-
-
             $(".status")
                 .fadeOut("slow")
                 .html(statusMessage)
@@ -120,42 +121,39 @@ $(function() {
             }
         },
         play: function () {
-            this.validCommand = true;
             var currentSong = this.audioData.currentSong;
             if (currentSong === -1) {
                 this.audioData.currentSong = ++currentSong;
                 this.audioData.songs[this.audioData.currentSong] = new Audio(
                     this.data[0].fileName);
-                this.audioData.songs[currentSong].playSong();
+                this.playSong(this.audioData.songs[currentSong]);
 
             } else {
-                this.audioData.songs[currentSong].playSong();
+                this.playSong(this.audioData.songs[currentSong]);
             }
         },
 
         stop: function (stopPlayback) {
-            this.validCommand = true;
-            this.audioData.songs[this.audioData.currentSong].pauseSong(stopPlayback || false);
+            this.pauseSong(this.audioData.songs[this.audioData.currentSong],stopPlayback || false);
             if (stopPlayback) {
                 this.audioData.songs[this.audioData.currentSong].currentTime = 0;
             }
         },
         prev: function () {
-            this.validCommand = true;
             var currentSong = this.audioData.currentSong;
             if (typeof this.audioData.songs[currentSong - 1] !== 'undefined') {
-                this.audioData.songs[currentSong].pauseSong();
+                this.pauseSong(this.audioData.songs[currentSong]);
                 this.audioData.currentSong = --currentSong;
-                this.audioData.songs[currentSong].playSong();
+                this.playSong(this.audioData.songs[currentSong]);
 
 
             }
             else if (currentSong > 0) {
-                this.audioData.songs[currentSong].pauseSong();
+                this.pauseSong(this.audioData.songs[currentSong]);
                 this.audioData.currentSong = currentSong = --currentSong;
                 this.audioData.songs[this.audioData.currentSong] = new Audio(
                     this.data[currentSong].fileName);
-                this.audioData.songs[currentSong].playSong();
+                this.playSong(this.audioData.songs[currentSong]);
             }
             else {
                 //no previous audio
@@ -169,16 +167,15 @@ $(function() {
                 .fadeIn("slow");
         },
         next: function () {
-            this.validCommand = true;
             var currentSong = this.audioData.currentSong;
             if (currentSong > -1) {
-                this.audioData.songs[currentSong].pauseSong() ;
+                this.pauseSong(this.audioData.songs[currentSong]);
             }
             if (typeof this.data[currentSong + 1] !== 'undefined') {
                 currentSong = ++this.audioData.currentSong;
                 this.audioData.songs[this.audioData.currentSong] = new Audio(
                     this.data[currentSong].fileName);
-                this.audioData.songs[currentSong].playSong();
+                this.playSong(this.audioData.songs[currentSong]);
             }
             else {
                 //no next song
@@ -187,142 +184,122 @@ $(function() {
         },
 
         processCommands: function (cmd) {
-            this.validCommand = false;
             this.changeLastCommand(cmd);
-            if (cmd.indexOf("play") !== -1) {
-                if (cmd === "play") {
-                    this.play();
-                }
-
-                var playSpecific = cmd.match(/play\s*(.+)$/);
-                if (playSpecific) {
-                    var keyword = playSpecific[1];
-
-                    for (var i = 0; i < this.data.length; i++) {
-
-                        if (this.data[i].songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
-                            this.data[i].singer.trim().toLowerCase().indexOf(keyword) !== -1) {
-
-
-                            if (typeof this.audioData.songs[i] !== 'undefined') {
-                                //if the song is already cached
-                                if (this.audioData.currentSong > -1) {
-                                    this.audioData.songs[this.audioData.currentSong].pauseSong();
-                                }
-
-                                this.audioData.currentSong = i;
-                                this.validCommand = true;
-                                this.audioData.songs[i].playSong();
-                                break;
-                            } else {
-                                this.validCommand = true;
-                                //add the song and play it
-                                if (this.audioData.currentSong > -1) {
-                                    this.audioData.songs[this.audioData.currentSong].pauseSong();
-                                }
-                                this.audioData.currentSong = i;
-                                this.audioData.songs[i] = new Audio(
-                                    this.data[i].fileName);
-                                this.audioData.songs[i].playSong();
-                                break;
+            var playSpecific = cmd.match(/play\s*(.+)$/);
+            if (playSpecific) {
+                var keyword = playSpecific[1];
+                for (var i = 0; i < this.data.length; i++) {
+                    if (this.data[i].songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
+                        this.data[i].singer.trim().toLowerCase().indexOf(keyword) !== -1) {
+                        if (typeof this.audioData.songs[i] !== 'undefined') {
+                            //if the song is already cached
+                            if (this.audioData.currentSong > -1) {
+                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
                             }
+                            this.audioData.currentSong = i;
 
+                            this.playSong(this.audioData.songs[i]);
+                            break;
+                        } else {
 
+                            //add the song and play it
+                            if (this.audioData.currentSong > -1) {
+                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+                            }
+                            this.audioData.currentSong = i;
+                            this.audioData.songs[i] = new Audio(
+                                this.data[i].fileName);
+                            this.playSong(this.audioData.songs[i]);
+                            break;
                         }
+
                     }
+                }
+                return;
+            }
+                switch (cmd) {
+                    case "play" :
+                        this.play();
+                        break;
+                    case 'pause' :
+                        this.stop();
+                        break;
+                    case "stop" :
+                        this.stop();
+                        break;
+                    case "next" :
+                        this.next();
+                        break;
+                    case "previous" :
+                        this.prev();
+                        break;
+                    default :
+                        this.speak("Your command was invalid!", false);
+
 
                 }
-            }
-
-            if (cmd === "pause") {
-                this.stop();
-            }
-
-            if (cmd === "stop") {
-                this.stop(true);
-            }
-
-            if (cmd === "next") {
-                this.next();
-            }
-            if (cmd === "previous") {
-                this.prev();
-            }
-
-            if (!this.validCommand) {
-                this.speak("Your command was invalid", false);
-            }
         },
         toggleSpinner: function (show) {
             (show || false) ? $("#spinner").fadeIn(900) : $("#spinner").fadeOut(1200);
         }
     }
-    audioPlayer.load();
-    if (window['webkitSpeechRecognition']) {
+    $(function() {
+        audioPlayer.load();
+        if (window['webkitSpeechRecognition']) {
+            var speechRecognizer = new webkitSpeechRecognition();
+            //recognition will not end when user stops speaking if set to true
+            speechRecognizer.continuous = true;
+            //process the request while the user is speaking
+            // and his commands are final. Set to false by default
+            speechRecognizer.interimResults = true;
+            var currentCommands = ['play', 'stop', 'pause', 'next', 'previous'],
+                results = [],
+                timeoutSet = false;
 
-        var speechRecognizer = new webkitSpeechRecognition();
-        //recognition will not end when user stops speaking if set to true
-        speechRecognizer.continuous = true;
-        //process the request while the user is speaking
-        // and his commands are final. Set to false by default
-        speechRecognizer.interimResults = true;
-        var lastCommandProcessed = true,
-            allResults = [],
-            hasValidResult = false,
-            currentCommands = ['play', 'stop', 'pause', 'next', 'previous'];
-        speechRecognizer.onresult = function(evt) {
-            audioPlayer.toggleSpinner(true);
-            hasValidResult = false;
+            speechRecognizer.onresult = function (evt) {
+                audioPlayer.toggleSpinner(true);
+                 results.push(evt.results);
+                    if (!timeoutSet) {
+                        setTimeout(function() {
+                            timeoutSet = false;
+                            for (var ri = results.length - 1, rl = -1; ri > rl; ri--) {
+                                var el = results[ri][0][0].transcript.toLowerCase();
+                                if (currentCommands.indexOf(el.split(" ")[0]) !== -1) {
+                                    speechRecognizer.abort();
+                                    audioPlayer.processCommands(el);
+                                    audioPlayer.toggleSpinner();
+                                    results = [];
+                                    break;
 
-            allResults.push(evt.results);
-            if (lastCommandProcessed) {
-                lastCommandProcessed = false;
 
-                var checkForCommand = setTimeout(function() {
-                    for (var ri = allResults.length -1,rl = -1;ri > rl;ri--) {
-                        var el = allResults[ri][0][0];
+                                }
 
-                        el = el.transcript.toLowerCase().trim();
-                        speechRecognizer.abort();
-                        audioPlayer.toggleSpinner();
-                        lastCommandProcessed = true;
-                        if (currentCommands.indexOf(el.split(" ")[0]) !== -1) {
+                                if (ri === 0) {
+                                    audioPlayer.processCommands(el);
+                                    speechRecognizer.abort();
+                                    audioPlayer.toggleSpinner();
+                                    results = [];
+                                }
 
-                            hasValidResult = true;
-                            audioPlayer.processCommands(el);
-                            allResults = [];
-                            break;
+
                         }
-
-
-                    }
-                    if (!hasValidResult) {
-                        audioPlayer.processCommands(allResults[allResults.length - 1][0][0].transcript.toLowerCase().trim());
+                        }, 3000)
                     }
 
-                    allResults = [];
-                },3000)
+                        timeoutSet = true;
+
+                }
+
+            speechRecognizer.onend = function () {
+
+                speechRecognizer.start();
 
             }
-
-
-            //
+            speechRecognizer.lang = "en-US";
+            speechRecognizer.start();
         }
-
-        speechRecognizer.onend = function() {
-
-          speechRecognizer.start();
-
+        else {
+            //notify that web speech is not supported
+            alert("Your browser does not support the Web Speech API");
         }
-        speechRecognizer.lang = "en-US";
-        speechRecognizer.start();
-
-
-
-    }
-    else {
-      //notify that web speech is not supported
-
-  }
-
-})
+    });
