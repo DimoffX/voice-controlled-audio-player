@@ -56,7 +56,7 @@
         load: function () {
             //get all data about the songs
             this.data = data.songs;
-            $(data.songs).each(function (i, val) {
+            data.songs.forEach(function (val,i) {
 
                 $("#playlist").append("<li class='list-group-item'>" + val.singer + " - " + val.songName);
 
@@ -183,33 +183,36 @@
             }
         },
         searchSpecificSong: function(keyword) {
-            for (var i = 0; i < this.data.length; i++) {
-                if (this.data[i].songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
-                    this.data[i].singer.trim().toLowerCase().indexOf(keyword) !== -1) {
-                    if (typeof this.audioData.songs[i] !== 'undefined') {
-                        //if the song is already cached
-                        if (this.audioData.currentSong > -1) {
-                            this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+            try {
+                this.data.forEach(function(val,i) {
+                    if (val.songName.trim().toLowerCase().indexOf(keyword) !== -1 ||
+                        val.singer.trim().toLowerCase().indexOf(keyword) !== -1) {
+                        if (typeof this.audioData.songs[i] !== 'undefined') {
+                            //if the song is already cached
+                            if (this.audioData.currentSong > -1) {
+                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+                            }
+                            this.audioData.currentSong = i;
+                            audioPlayer.playSong(audioPlayer.audioData.songs[i]);
+                            throw LoopBreakException;
+                        } else {
+                            //add the song and play it
+                            if (this.audioData.currentSong > -1) {
+                                this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
+                            }
+                            this.audioData.currentSong = i;
+                            this.audioData.songs[i] = new Audio(
+                                this.data[i].fileName);
+                            this.playSong(this.audioData.songs[i]);
+                            throw LoopBreakException;
                         }
-                        this.audioData.currentSong = i;
 
-                        this.playSong(this.audioData.songs[i]);
-                        break;
-                    } else {
-
-                        //add the song and play it
-                        if (this.audioData.currentSong > -1) {
-                            this.pauseSong(this.audioData.songs[this.audioData.currentSong]);
-                        }
-                        this.audioData.currentSong = i;
-                        this.audioData.songs[i] = new Audio(
-                            this.data[i].fileName);
-                        this.playSong(this.audioData.songs[i]);
-                        break;
                     }
-
-                }
+                }, audioPlayer);
             }
+                catch (e){
+                      return e;
+                }
         },
 
         processCommands: function (cmd) {
@@ -265,27 +268,31 @@
                     if (!timeoutSet) {
                         setTimeout(function() {
                             timeoutSet = false;
-                            for (var ri = results.length - 1, rl = -1; ri > rl; ri--) {
-                                var el = results[ri][0][0].transcript.toLowerCase();
-                                if (currentCommands.indexOf(el.split(" ")[0]) !== -1) {
-                                    speechRecognizer.abort();
-                                    audioPlayer.processCommands(el);
-                                    audioPlayer.toggleSpinner();
-                                    results = [];
-                                    break;
+                            results.reverse();
+                            try {
+                                results.forEach(function (val, i) {
+                                    var el = val[0][0].transcript.toLowerCase();
+                                    if (currentCommands.indexOf(el.split(" ")[0]) !== -1) {
+                                        speechRecognizer.abort();
+                                        audioPlayer.processCommands(el);
+                                        audioPlayer.toggleSpinner();
+                                        results = [];
+                                        throw new BreakLoopException;
+
+                                    }
+
+                                    if (i === 0) {
+                                        audioPlayer.processCommands(el);
+                                        speechRecognizer.abort();
+                                        audioPlayer.toggleSpinner();
+                                        results = [];
+                                    }
+
+                                });
+                            }
+                            catch(e) {return e;}
 
 
-                                }
-
-                                if (ri === 0) {
-                                    audioPlayer.processCommands(el);
-                                    speechRecognizer.abort();
-                                    audioPlayer.toggleSpinner();
-                                    results = [];
-                                }
-
-
-                        }
                         }, 3000)
                     }
 
